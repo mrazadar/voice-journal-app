@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const voiceEntryController_1 = require("../controllers/voiceEntryController");
+const router = (0, express_1.Router)();
+router.post("/", voiceEntryController_1.createVoiceEntry);
+router.get("/", voiceEntryController_1.getVoiceEntries);
+router.get("/:id", voiceEntryController_1.getVoiceEntryById);
+router.put("/:id", voiceEntryController_1.updateVoiceEntry);
+router.delete("/:id", voiceEntryController_1.deleteVoiceEntry);
+exports.default = router;
