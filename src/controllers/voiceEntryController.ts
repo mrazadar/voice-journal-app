@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import pool from "../config/db";
 
+import { transcribeAudio } from "../services/transcriptionService"; // New import
+
 import {
   CreateVoiceEntrySchema,
   UpdateVoiceEntrySchema,
@@ -181,6 +183,61 @@ export const streamVoiceAudio = async (
     next(error); // Pass to global error handler
   }
   // No finally block needed here, as withLargeObjectManager handles client release
+};
+
+/***
+ *
+ * This endpoint is designed for a logged-in user to analyze a voice entry.
+ * It takes the audio file associated with the voice entry and transcribes it.
+ * The transcription is then stored in the database for future reference.
+ * */
+export const analyzeVoiceEntry = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id || 1; // Placeholder
+
+    const entryResult = await pool.query(
+      "SELECT audio_oid FROM voice_entries WHERE id = $1 AND user_id = $2",
+      [id, userId]
+    );
+
+    if (entryResult.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Voice entry not found or unauthorized" });
+    }
+
+    const audioOid = entryResult.rows[0].audio_oid;
+
+    if (audioOid === 0) {
+      return res.status(400).json({ message: "No audio found for analysis." });
+    }
+
+    let transcription: string = ""; // Initialize transcription
+    await withLargeObjectManager(async (man) => {
+      const [size, readStream] = await man.openAndReadableStreamAsync(audioOid);
+      transcription = await transcribeAudio(readStream);
+    });
+
+    // It's also good practice to check if transcription was actually populated
+    if (!transcription) {
+      return res.status(500).json({ message: "Audio transcription failed." });
+    }
+
+    // Update the voice entry with the transcription
+    const updateResult = await pool.query(
+      "UPDATE voice_entries SET transcription = $1 WHERE id = $2 RETURNING *",
+      [transcription, id]
+    );
+
+    res.status(200).json({
+      message: "Voice entry analyzed and transcription updated.",
+      entry: updateResult.rows[0],
+    });
+  } catch (error) {
+    console.error("Error analyzing voice entry:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 /**
