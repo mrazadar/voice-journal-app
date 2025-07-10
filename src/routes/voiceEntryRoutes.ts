@@ -6,6 +6,7 @@ import {
   updateVoiceEntry,
   deleteVoiceEntry,
   streamVoiceAudio,
+  analyzeVoiceEntry,
 } from "../controllers/voiceEntryController";
 import multer from "multer";
 
@@ -19,5 +20,6 @@ router.get("/:id", getVoiceEntryById as RequestHandler);
 router.put("/:id", updateVoiceEntry as RequestHandler);
 router.delete("/:id", deleteVoiceEntry as RequestHandler);
 router.get("/:id/audio", streamVoiceAudio as RequestHandler);
+router.get("/:id/analyze", analyzeVoiceEntry as RequestHandler);
 
 export default router;
