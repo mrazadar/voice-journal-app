@@ -102,62 +102,85 @@ export const createVoiceEntry = async (
   }
 };
 
-// ... (Your streamVoiceAudio function should be here) ...
-
-// Also, update streamVoiceAudio to use custom errors for consistency
+/**
+ * Retrieves the audio file associated with the given voice entry.
+ * This endpoint is designed for a logged-in user to fetch the audio file associated with a voice entry.
+ * The internal user ID is expected to be present on `req.user` due to `userHandler` middleware.
+ * The audio file is streamed to the client.
+ */
 export const streamVoiceAudio = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  // Added next: NextFunction
   try {
     const { id } = req.params;
-    const userId = req.user!.id; // Use req.user!.id
+    const userId = req.user!.id;
 
-    const entryResult = await pool.query(
-      "SELECT audio_oid FROM voice_entries WHERE id = $1 AND user_id = $2",
-      [id, userId]
-    );
+    let audioOid: number;
+    // Fetch audioOid within a transaction
+    await withLargeObjectManager(async (man, client) => {
+      // man and client are provided by the helper
+      const entryResult = await client.query(
+        "SELECT audio_oid FROM voice_entries WHERE id = $1 AND user_id = $2",
+        [id, userId]
+      );
 
-    if (entryResult.rows.length === 0) {
-      throw new NotFoundError("Audio not found or unauthorized."); // Use custom error
-    }
+      if (entryResult.rows.length === 0) {
+        throw new NotFoundError("Audio not found or unauthorized.");
+      }
+      audioOid = entryResult.rows[0].audio_oid;
 
-    const audioOid = entryResult.rows[0].audio_oid;
+      if (audioOid === 0) {
+        throw new BadRequestError("No audio file associated with this entry.");
+      }
 
-    // CRITICAL CHECK: Ensure audioOid is not 0 here!
-    if (audioOid === 0) {
-      throw new BadRequestError("No audio associated with this entry."); // Use custom error
-    }
-
-    await withLargeObjectManager(async (man) => {
       const [size, readStream] = await man.openAndReadableStreamAsync(audioOid);
 
+      const contentType = "audio/mpeg"; // Or retrieve from DB if stored
+
       res.writeHead(200, {
-        "Content-Type": "audio/mpeg",
+        "Content-Type": contentType,
         "Content-Length": size,
         "Accept-Ranges": "bytes",
       });
 
       readStream.pipe(res);
 
+      // Handle errors DURING stream - critical for preventing crashes after headers are sent
       readStream.on("error", (err) => {
-        console.error("Error streaming audio:", err);
-        next(err); // Pass streaming errors to global handler
+        console.error(`Error streaming audio for OID ${audioOid}:`, err);
+        // If response is still writable, log and try to end gracefully
+        if (!res.writableEnded) {
+          res.end(); // Just end the response stream
+        }
+        // Do NOT call next(err) here as headers have already been sent.
+        // This error is handled by ending the stream gracefully.
       });
 
+      // Handle client disconnect
       req.on("close", () => {
         if (!res.writableEnded) {
-          // Only destroy if response hasn't finished
           readStream.destroy();
-          console.log("Client disconnected during audio stream.");
+          console.log(
+            `Client disconnected during audio stream for OID ${audioOid}. Stream destroyed.`
+          );
         }
       });
+      // Since this is a streaming response, we don't return anything
+      // from the withLargeObjectManager callback that implies ending the HTTP response
+      // here. The piping mechanism will handle res.end() when the stream finishes.
+      return; // Explicitly return void as we are handling the response
     });
   } catch (error) {
-    next(error); // Pass error to the global error handler
+    // This catch block handles errors *before* any headers are sent (e.g., DB query fails, OID is 0)
+    console.error(
+      "Error in streamVoiceAudio endpoint (before stream starts):",
+      error
+    );
+    next(error); // Pass to global error handler
   }
+  // No finally block needed here, as withLargeObjectManager handles client release
 };
 
 /**
