@@ -1,0 +1,187 @@
+{
+	"info": {
+		"_postman_id": "b69ccf57-7e48-412a-b020-303358f1bcfb",
+		"name": "VoiceJournalAPI",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "199257"
+	},
+	"item": [
+		{
+			"name": "users",
+			"item": [
+				{
+					"name": "me",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{auth0_jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": "http://localhost:3004/api/users/me"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "voiceEntries",
+			"item": [
+				{
+					"name": "All Voice Entries",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{auth0_jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": "http://localhost:3004/api/voice-entries"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Voice Entry",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{auth0_jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": "http://localhost:3004/api/voice-entries/3"
+					},
+					"response": []
+				},
+				{
+					"name": "Audio Stream",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{auth0_jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": "http://localhost:3004/api/voice-entries/3"
+					},
+					"response": []
+				},
+				{
+					"name": "Analyze Audio Stream",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{auth0_jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": "http://localhost:3004/api/voice-entries/3"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Voice Entry",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{auth0_jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Second Awesome Audio Track\",\n    \"description\": \"A person awesomely snoring all night..\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:3004/api/voice-entries/3"
+					},
+					"response": []
+				},
+				{
+					"name": "Create New Voice Entry",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/javascript",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "Authorization",
+								"value": "{{auth0_jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "multipart/form-data",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Fourth Audio Track\n\n",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Very long audio of 4th grade song.",
+									"type": "text"
+								},
+								{
+									"key": "audio",
+									"type": "file",
+									"src": "/Users/mrazadar/Downloads/Shadow in the Stillness (1).mp3"
+								}
+							]
+						},
+						"url": "http://localhost:3004/api/voice-entries"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "http://localhost:3004",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "http://localhost:3004"
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		}
+	]
+}
